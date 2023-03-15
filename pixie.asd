@@ -4,11 +4,19 @@
   :license "MIT"
   :depends-on (
                "cl-i"
+               "arrows"
+               "alexandria"
+               "com.inuoe.jzon"
+               "dexador"
+               "quri"
+               "cl-ppcre"
+               "trivial-features"
+               "trivial-package-local-nicknames"
                )
   :components ((:module "src"
           :components
           ((:file "main"))))
-  :description "CLI library for Common Lisp. Handles args, envvars, and conf"
+  :description "Small, mischeivous chat client"
   :in-order-to ((test-op (test-op "pixie/tests"))))
 
 (defsystem "pixie/tests"
@@ -17,6 +25,7 @@
   :license "MIT"
   :depends-on (
       "pixie"
+      "cl-ppcre"
       "rove")
 
   :components ((:module "tests"

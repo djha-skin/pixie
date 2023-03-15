@@ -1,4 +1,3 @@
-git cl-i git@git.djha.skin:me/cl-i.git :tag 0.5.0
 ql jzon
 ql closer-mop
 ql float-features

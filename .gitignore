@@ -17,3 +17,21 @@
 *.wx64fsl
 *.wx32fsl
 
+# Executable files
+*.exe
+*.so
+*.dll
+
+# REPL
+/.repl/ros_history
+repl.lisp
+
+# Qlot
+/.qlot/
+/.bundle-libs/
+
+# Editor Save files
+*~
+.#*
+.*.sw[a-z]
+.*#
