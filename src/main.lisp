@@ -2,7 +2,7 @@
 (declaim (optimize (speed 0) (space 0) (debug 3)))
 (in-package #:cl-user)
 (defpackage
-  #:pixie (:use #:cl)
+  #:skin.djha.pixie (:use #:cl)
   (:documentation
     "
     Pixie is a small, mischeivous chat client.
