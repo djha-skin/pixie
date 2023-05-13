@@ -6,7 +6,7 @@
                "cl-i"
                "arrows"
                "alexandria"
-               "com.inuoe.jzon"
+               "nrdl"
                "dexador"
                "quri"
                "cl-ppcre"
@@ -17,6 +17,9 @@
           :components
           ((:file "main"))))
   :description "Small, mischeivous chat client"
+  :build-operation "program-op"
+  :build-pathname "pixie"
+  :entry-point "pixie:main"
   :in-order-to ((test-op (test-op "pixie/tests"))))
 
 (defsystem "pixie/tests"

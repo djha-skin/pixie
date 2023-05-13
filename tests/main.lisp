@@ -6,7 +6,10 @@
   (:use #:cl
         #:rove)
   (:import-from
-    #:pixie))
+    #:pixie)
+  (:import-from
+    #:nrdl)
+  )
 (in-package :pixie/tests)
 
 (defvar *tests-dir*
@@ -17,6 +20,26 @@
       'asdf/component:absolute-pathname)))
 
 (deftest
-  main-test
-  (testing "main"
-           (ok (equals (pixie:main (3) 3)))))
+  help-page-test
+    (testing "Help page: typical invocation"
+             (ok
+               (equals
+                 "Usage: pixie <subcommands>
+
+  Subcommands:
+
+    - `dm ls`
+
+To see the help page for a subcommand, run `pixie <subcmd> help.
+
+Given options:
+
+  - `FOO` = `bar`
+  - `PLETHORA` = `15`
+  - `GARBLED` = `FALSE`
+
+"
+			(pixie:help-page
+              '((:garbled . nrdl:false)
+                (:plethora . 15)
+                (:foo . "bar")))))))

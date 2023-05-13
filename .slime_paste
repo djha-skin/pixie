@@ -1,0 +1,7 @@
+(defun groups ()
+  (let ((result (make-hash-table :test #'equal)))
+    (loop for g across (groupme-get :path '("groups"))
+          do
+          (setf (gethash (gethash "name" g) result)
+                (gethash "id" g)))
+    result))

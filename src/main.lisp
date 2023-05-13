@@ -2,79 +2,90 @@
 (declaim (optimize (speed 0) (space 0) (debug 3)))
 (in-package #:cl-user)
 (defpackage
-  #:skin.djha.pixie (:use #:cl)
+  #:pixie (:use #:cl)
   (:documentation
     "
-    Pixie is a small, mischeivous chat client.
+    Pixie is a small, mischievous chat client.
 
     It allows the user to work from the CLI with modern chat services.
     ")
-    (:import-from #:cl-i)
+
+    (:import-from #:alexandria)
+    (:import-from #:dexador)
+    (:import-from #:quri)
+    (:import-from #:com.inuoe.jzon)
+    (:import-from #:nrdl)
   (:export
     main)
     )
 (in-package #:pixie)
 
-(defun help-page
-  (options)
-  "
-  Print a help page for Pixie.
-  "
-  (format
-    *standard-error*
-    (cl-i:join-lines
-      "Usage: pixie <subcommands>"
-      ""
-      "  Subcommands:"
-      ""
-      "    - `messages list`"
-      ""
-      "To see the help page for a subcommand, run `pixie <subcmd> help."
-      ""
-      "Given options:"
-      ""
-      (format nil "  ~A"
-              (alexandria:alist-hash-table
-                options
-                :test #'equal))
-      ""
-      ))
-  (alexandria:alist-hash-table
-    '((:status . :successful))))
+(defparameter *groupme-token*
+  (uiop/os:getenv "GROUPME_TOKEN"))
+#|
+(make-groupme-uri :path '("groups"))
+#<QURI.URI.HTTP:URI-HTTPS https://api.groupme.com/v3/groups?token=<REDACTED>
+QxAL9DWBg7kVtNLzaF8xtL>
+* (quri:render-uri *)
+"https://api.groupme.com/v3/groups?token=<REDACTED>"
+|#
 
-(defun cli-list-rooms
-  (options)
-  "
-  List rooms in the account.
-  "
+(defun groupme-get-paginated
+  (&key
+    path
+    query
+    (page 1)
+    (scheme "https")
+    (host "api.groupme.com")
+    (base-path "v3")
+    (token *groupme-token*))
+  (multiple-value-bind
+    (response code headers redir)
+    (dexador:get
+      (let* ((q (acons "token" token query))
+             (q (acons "page" page q)))
+        (quri:make-uri
+          :scheme scheme
+          :host host
+          :path (format nil "/~A~{/~A~}"
+                        base-path
+                        path)
+          :query q)))
+    (declare (ignore headers)
+             (ignore redir))
+    (if (> code 399)
+      (error "bad")
+      (gethash "response" (com.inuoe.jzon:parse response)))))
 
-  (let* ((client (make-chat-client (gethash :account options)))
-         ))
-    (handler-case
-      (rooms (chat-client:rooms))
-      ('bad-auth (this))
-      ('io-error (that))))
+(defun groupme-get
+  (&rest groupme-get-paginated-args)
 
+  (apply
+    #'concatenate
+    (cons 'vector
+  (loop for page = 1 then (+ page 1)
+        for response = (apply
+                         #'groupme-get-paginated
+                            (concatenate
+                              'list
+                              `(:page ,page)
+                              groupme-get-paginated-args))
+        while (> (length response) 0)
+        collect response))))
 
+(defun groups ()
+  (let ((result (make-hash-table :test #'equal)))
+    (loop for g across (groupme-get :path '("groups"))
+          do
+          (setf (gethash (gethash "name" g) result)
+                (gethash "id" g)))
+    result))
 
-    (alexandria:alist-hash-table
-    (client-side:list-messages client 
-  
+(defun group-messages (id back-til
+  (
+  (
 
 (defun 
-
-(defun main ()
-  (multiple-value-bind (code outcome)
-    (cl-i:execute-program
-      "pixie"
-      (uiop/os:env-hash-table)
-      `((nil . ,#'help-page)
-      (("messages" "list") . ,#'list-messages))
-      :cli-arguments
-      (uiop/os:get-args))
-    (format t "~A~%"
-            (cl-i:generate-string outcome :pretty true))
-    (uiop/os:exit code)))
 
 
 
