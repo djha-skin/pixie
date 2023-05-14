@@ -13,7 +13,6 @@
     (:import-from #:alexandria)
     (:import-from #:dexador)
     (:import-from #:quri)
-    (:import-from #:com.inuoe.jzon)
     (:import-from #:nrdl)
   (:export
     main)
@@ -55,7 +54,11 @@ QxAL9DWBg7kVtNLzaF8xtL>
              (ignore redir))
     (if (> code 399)
       (error "bad")
-      (gethash "response" (com.inuoe.jzon:parse response)))))
+      (gethash
+        "response"
+        (with-input-from-string (strm response)
+        (nrdl:parse-from strm))))))
+;;      (gethash "response" (nrdl:parse-from   response)))))
 
 (defun groupme-get
   (&rest groupme-get-paginated-args)
@@ -73,19 +76,66 @@ QxAL9DWBg7kVtNLzaF8xtL>
         while (> (length response) 0)
         collect response))))
 
-(defun groups ()
-  (let ((result (make-hash-table :test #'equal)))
-    (loop for g across (groupme-get :path '("groups"))
+(defun adjoin-entity
+  (nick id ids)
+  (let ((prior (gethash id ids)))
+    (when (or (not prior)
+            (> (length prior)
+               (length nick)))
+      (setf (gethash id ids) nick))))
+
+(defun insert-by-name (k v result)
+  (loop
+    for i = 1 then (+ i 1)
+    for tried = k then (format nil "~A ~A" k i)
+    for prior = (gethash tried result)
+    while prior
+    do
+    (when (equal prior v)
+      (return))
+    finally
+    (setf
+      (gethash tried result)
+      v))
+  result)
+
+(defun ids-names
+  (ids)
+  (loop with building = (make-hash-table :test #'equal)
+        for id being the hash-keys of ids
+        using (hash-value nick)
+        do
+        (insert-by-name nick id building)
+        finally
+        (return building)))
+
+
+(defun rooms ()
+  "
+  Returns a hash map from something the user can type out to room IDs.
+  "
+  (let ((ids (make-hash-table :test #'equal)))
+    (loop for g across (groupme-get :path '("groups")
+                                    :query '(("omit" . "memberships")))
           do
-          (setf (gethash (gethash "name" g) result)
-                (gethash "id" g)))
+          (adjoin-entity (gethash "name" g) (gethash "id" g) ids)
+          finally
+          (return (ids-names ids)))))
+
+(defun contacts ()
+  "
+  Returns a hash map from something the user can type out to contact IDs.
+  "
+    (loop with result = (make-hash-table :test #'equal)
+          for g across (groupme-get :path '("groups"))
+          do
+          (loop for m in (gethash "members" g)
+                do
+                (adjoin-entity (gethash "nickname" m)
+                               (gethash "user_id" m)
+                                result))
+
+          finally
+          (return
+            (ids-names result))))
     result))
-
-(defun group-messages (id back-til
-  (
-  (
-
-(defun 
-
-
-

@@ -1,7 +1,13 @@
-(defun groups ()
-  (let ((result (make-hash-table :test #'equal)))
-    (loop for g across (groupme-get :path '("groups"))
+(defun contacts ()
+    (loop with result = (make-hash-table :test #'equal)
+          for g across (groupme-get :path '("groups"))
           do
-          (setf (gethash (gethash "name" g) result)
-                (gethash "id" g)))
-    result))
+          (loop for m in (gethash "members" g)
+                do
+                (adjoin-entity (gethash "nickname" m)
+                               (gethash "user_id" m)
+                                result))
+
+          finally
+          (return
+            (ids-names result))))
