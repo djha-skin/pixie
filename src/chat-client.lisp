@@ -2,7 +2,7 @@
 (declaim (optimize (speed 0) (space 0) (debug 3)))
 (in-package #:cl-user)
 (defpackage
-  #:skin.djha.pixie/chat-client (:use #:cl)
+  #:skin.djha.pixie/client (:use #:cl)
   (:documentation
     "
     This is the chat client class that pixie uses to communicate with various
@@ -11,18 +11,176 @@
     (:import-from #:dexador
                   #:com.inuoe.jzon)
   (:export
-    main)
+    request
+    mute
+    conversations
+    history
+    dms
+    rooms
     )
-(in-package #:skin.djha.pixie/chat-client)
+    )
+(in-package #:skin.djha.pixie/client)
 
-(defclass pageable ()
-  )
-(defgeneric next-page (pageable)
+
+(defgeneric request (client person)
             :documentation
-            "Returns the next page of results, or <nil> or somet if there is no
-            more results.
-            But this is only useful if you on't want a specific page.
             "
+            Request the ability to chat with a person.
+            Not needed on all platforms, thus a no-op.
+            "
+            )
+
+(defgeneric mute (client person)
+            :documentation
+            "
+            Ignore all messages from a person, whatever room or setting in which
+            the message is found.
+            "
+            )
+
+(defgeneric directs (client)
+            :documentation
+            "
+            List direct conversations of interest.
+            "
+            )
+
+(defgeneric rooms (client)
+            :documentation
+            "
+            List rooms of interest.
+            "
+            )
+
+(defgeneric seek-directs (client for)
+            :documentation
+            "
+            Search for available directs.
+            "
+            )
+
+(defgeneric seek-rooms (client for)
+            :documentation
+            "
+            Search for available directs.
+            "
+            )
+
+(defgeneric history (client conversation &key limit since until)
+            :documentation
+            "
+            List <limit> messages. By default, the most recent in the given
+            conversation. `since` and `until` can be used to narrow the window.
+            "
+            )
+
+(defgeneric search (client for &key conversation limit)
+            :documentation
+            "
+            Search for messages, returning the <limit> most relevant.
+            "
+            )
+
+(defgeneric watch (client conversation consumer &key blacklist
+                                 whitelist)
+            :documentation
+            "
+            Forks a thread. Watches for updates in a conversation. When updates
+            happen, `consumer` is callled on them.
+            Returns an object that implements the `done` function below.
+            Calling that function closes down that watching thread and returns
+            any results from it.
+            "
+            )
+
+; We have to think about watch very carefully.
+; It forks a thread, and sends messages as it finds them somewhere.
+; It also is constantly listening for "that's enough".
+; Returns an object containing a queue and a function.
+; function signals a condition.
+
+(defgeneric done (watcher)
+            :documentation
+            "
+            Communique informing the watcher that we're done.
+            "
+            )
+
+(defgeneric post (client conversation &key in-reply-to)
+            :documentation
+            "
+            Posts a message to a conversation, optionally in reply to another
+            message.
+            "
+            )
+
+(defgeneric react (client conversation message reaction)
+            :documentation
+            "
+            Reacts to a message.
+            "
+            )
+
+(defgeneric invite (client person room)
+            :documentation
+            "
+            Invites a person into a (private) room.
+            "
+            )
+
+(defgeneric kick (client person room)
+            :documentation
+            "
+            Kicks a person from a room.
+            "
+            )
+
+(defgeneric people (client room)
+            :documentation
+            "
+            List people in a room.
+            "
+            )
+
+(defgeneric rooms (client)
+            :documentation
+            "
+            List available rooms.
+            "
+            )
+
+(defgeneric join (client room)
+            :documentation
+            "
+            Join a room.
+            "
+            )
+
+(defgeneric title (client room)
+            :documentation
+            "
+            Title or topic of the room.
+            "
+            )
+
+(defgeneric (setf title) (client room title)
+            :documentation
+            "Set room title (or topic)."
+            )
+
+(defgeneric description (client room)
+            :documentation
+            "
+            Room description (or MotD).
+            "
+            )
+
+(defgeneric (setf description) (client room description)
+            :documentation
+            "
+            Set room description (or MotD).
+            "
+            )
 
 (defclass account ()
   (name :reader name
@@ -67,11 +225,11 @@
             ;; For example, the above contain "Former" rooms
             ;; on groupme.
 
-(defgeneric create-room
+(defgeneric join-room
             (client name &rest more)
             :documentation
             "
-            Create your own room.
+            Join or create room.
             Returns successful or failure state, with meta information.
             ")
 
@@ -79,30 +237,26 @@
             (client name &rest more)
             :documentation
             "
-            Change room.
+            Change room
             ")
 
 
-(defgeneric delete-room
+(defgeneric leave-room
               (client name)
               :documentation
               "
-              Disavow a room. If the room is 'owned' by the current user
-              within the chat scheme, this means delete it. If this is not
-              possible, archive it. If that is not possible, simply
-              leave it.
+              Leave a room. If the room is 'owned' by the current user
+              within the chat scheme, this could mean to delete it. If this is
+              not possible, archive it. If that is not possible, simply leave
+              it.
               "
               )
 
-(defgeneric unfollow-room
+(defgeneric mute-room
             (client name)
             :documentation
             "
-            Means different things on different clients. In the pixie model,
-            stop following what is happening with this group. Leave, mute, or
-            other mechanisms that don't destroy the gropu can be used,
-            with precedence given to leaving, then to muting, as long
-            as they can be reversed on the platform in question.
+            Remain in the room, but do not notify for messages.
             "
 
 (defgeneric room-members
@@ -113,46 +267,3 @@
             List all room members in a list.
             "
             )
-
-(defgeneric invite-to-room
-            (client name other-users)
-            :documentation
-            "
-            On platforms that support it, invite to a room.
-            If this is not supported, add that person to a room.
-            If this is not supported, die.
-            ")
-
-(defgeneric room-history
-            (client name
-                    &key &optional since-id)
-            :documentation
-            "
-            Get messages from room in created by descending order.
-            ")
-
-(defgeneric send-room-message
-            (client destination message)
-            :documentation
-            "
-            Send a room a message.
-            ")
-(defgeneric dm-history
-            (client other-user &key &optional since-id)
-            :documentation
-            "
-            Direct message history with another user.
-            ")
-(defgeneric post-dm
-            (client other-user message)
-            :documentation
-            "Post a direct message to someone."
-            )
-
-(defgeneric react-to
-            (client target message-id &key &optional reaction)
-            :documentation
-            "
-            Message ID to which to react
-            "
-

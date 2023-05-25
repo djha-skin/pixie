@@ -29,6 +29,12 @@ QxAL9DWBg7kVtNLzaF8xtL>
 "https://api.groupme.com/v3/groups?token=<REDACTED>"
 |#
 
+
+(defgeneric list-rooms
+            (account 
+
+
+
 (defun groupme-get-paginated
   (&key
     path
@@ -138,4 +144,5 @@ QxAL9DWBg7kVtNLzaF8xtL>
           finally
           (return
             (ids-names result))))
-    result))
+
+
