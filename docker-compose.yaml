@@ -1,0 +1,32 @@
+version: "3.3"
+services:
+  prosody:
+    image: prosody/prosody
+    ports:
+      - 5222:5222
+    volumes:
+      - ./prosody-data:/var/lib/prosody
+      - ./prosody-logs:/var/log/prosody
+    environment:
+      PROSODY_VIRTUAL_HOSTS: "localhost"
+
+#      - 8080:80
+#      - 8443:443
+#      - 5269:5269
+#      - 5347:5347
+#      - 5280:5280
+#      - 5281:5281
+
+#  lighttpd:
+#    image: jitesoft/lighttpd
+#    ports:
+#       - 8443:8443
+#    volumes:
+#      - .:/code
+#    environment:
+#      PORT: "8443"
+#      SERVER_NAME: "localhost"
+#      SERVER_ROOT: "/code/lighttpd-environment/wwwroot"
+#      CONFIG_FILE: "/code/lighttpd-environment/lighttpd/lighttpd.conf"
+#      SKIP_HEALTHCHECK: "false"
+#      MAX_FDS: "1024"
