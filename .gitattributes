@@ -14,9 +14,9 @@
 *.lisp text
 *.asd text
 *.md text
-*.lock text
 qlfile text
 .gitignore text
+*.lock text
 
 # Images
 *.png binary

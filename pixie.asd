@@ -14,8 +14,16 @@
                "trivial-package-local-nicknames"
                )
   :components ((:module "src"
-          :components
-          ((:file "main"))))
+                        :components
+                        (
+                         (:file "main")
+                         (:file "client")
+                         (:module "clients"
+                                  :components
+                                  (
+                                   (:file "fs")
+                                   ))
+                         )))
   :description "Small, mischeivous chat client"
   :build-operation "program-op"
   :build-pathname "pixie"

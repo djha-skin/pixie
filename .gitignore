@@ -8,7 +8,7 @@
 *~
 .#*
 .*.sw[a-z]
-/.slime_paste
+.slime_paste
 /.vagrant/
 
 /lighttpd-environment/test-data
