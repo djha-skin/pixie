@@ -8,10 +8,12 @@
     Pixie is a small, mischievous chat client.
 
     It allows the user to work from the CLI with modern chat services.
-    ")
+    "
+    )
 
     (:import-from #:nrdl)
     (:import-from #:pixie/client)
+    (:import-from #:pixie/clients/fs)
   (:export
    main)
     )
@@ -40,7 +42,7 @@ QxAL9DWBg7kVtNLzaF8xtL>
 ;; - Die.
 
 
-(defun main (argv)
+(defun main (argv &optional (strm t))
   (declare (ignore argv))
   (let* ((config (with-open-file (in
                                   #P"./test/data/prototype-config.nrdl"
@@ -49,21 +51,28 @@ QxAL9DWBg7kVtNLzaF8xtL>
                   (nrdl:parse-from in)))
         (client (pixie/client:make-client config)))
     ;; - List known accounts
-    (format "Accounts:~%~{  - ~A~%~}"
-            (pixie/client:accounts client))
+    (format strm "Accounts:~%~{  - ~A ~%~}"
+            (pixie/client:account-names client))
     (let ((account (pixie/client:account client "tester")))
       ;; - Login to _an_ account
-      (pixie/client:setup account)
+      (pixie/client:connect account)
       ;; - List conversations
-      (format "Conversations in ~A:~%~{  - ~A~%~}"
-              (pixie/client:name account)
-              (pixie/client:conversations account))
-      (let ((conversation (pixie/client:conversation account #p"~/likeaboss.txt")))
-        (format "Conversation members for `~A`:"
+      (format strm "Conversations in tester:~%~{  - ~A~%~}"
+              (pixie/client:conversation-names account))
+      (let ((conversation (pixie/client:conversation
+                            account
+                            #p"~/likeaboss.txt")))
+        (format strm "Conversation members for `~A`:"
                 (pixie/client:members conversation))
-        (format "Messages in ~A:~%~{  ~A~%~}"
-                (pixie/client:messages conversation 10))
+        (format strm "Messages in ~A:~%")
+        (loop for message in (pixie/client:messages conversation 10)
+              do
+              (format strm "  ~A ~A: ~A~%"
+                      (pixie/client:timestamp
+                        message)
+                      (pixie/client:author
+                        message)
+                      (pixie/client:body
+                        message)))
         (pixie/client:post conversation "but why")
-        (pixie/client:post conversation "I decline." :in-reply-to 1)
-        )
-      )))
+        (pixie/client:post conversation "I decline." :in-reply-to 1)))))

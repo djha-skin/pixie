@@ -1,4 +1,5 @@
 ql alexandria
 ql dexador
 ql quri
+ql local-time
 git nrdl git@git.sr.ht:~skin/nrdl :branch main

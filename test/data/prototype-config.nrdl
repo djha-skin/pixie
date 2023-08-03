@@ -1,7 +1,10 @@
 {
-    clients {
-       fs {
-         slug "skin"
+    accounts {
+        fs {
+            "tester" {
+                    directory "/c/Users/djh/Code/pixie/test/data"
+                }
+            }
          }
     }
 }

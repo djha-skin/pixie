@@ -5,44 +5,86 @@
   #:skin.djha.pixie/client (:use #:cl)
   (:documentation
     "
-    This is the chat client interface that pixie uses to communicate with various
-    chat APIs.
+    This is the chat client interface that pixie uses to communicate with
+    various chat APIs.
     ")
     (import-from #:pixie/clients/fs)
   (:export
-    contacts
-    rooms
-    )
-    )
+    make-client
+    account-names
+    account
+    connect
+    name
+    conversation-names
+    conversation
+    members
+    messages
+    author
+    timestamp
+    body
+    post))
+
 (in-package #:skin.djha.pixie/client)
 
-(defun make-client (config)
-  )
 
-(defun accounts (client)
-  )
+(defclass root ()
+  ((accounts :initarg :accounts
+             :initform (error "Must specify accounts.")
+             :accessor accounts
+             :type hash-table)))
+
+(defun make-client (config)
+  (let ((account-objects (make-hash-table :test #'equal)))
+    (loop for kind being the hash-keys of (gethash :accounts config)
+          using (hash-value payload)
+          do
+          (loop for slug being the hash-keys of payload
+                using (hash-value specifics)
+                do
+                (setf (gethash slug account-objects)
+                      (pixie/client:make-account
+                        kind
+                        specifics)))))
+  (make-instance root :accounts account-objects))
+
+(defun account-names (client)
+  (loop for acc being the hash-keys of (accounts client)
+        collect acc))
 
 (defun account (client slug)
-  )
+  (gethash slug (accounts client)))
 
-(defgeneric setup (account)
+(defgeneric make-account (kind specifics)
+            (
+             :documentation
+             "
+             Make an account object.
+             "
+             )
+            )
+
+(defgeneric whoami (account)
+            (
+             :documentation
+             "
+             Return the slug of the author of the client's messages.
+             "
+             )
+            )
+
+(defgeneric connect (account)
             (
              :documentation
              "
              Refresh login credentials, etc.
-             "
-             )
-            )
-(defgeneric name (thing)
-            (
-             :documentation
-             "
-             Give me a name.
+
+             It returns a generalized boolean, whether connection worked or
+             not.
              "
              )
             )
 
-(defgeneric conversations (account)
+(defgeneric conversation-names (account)
             (
              :documentation
              "
@@ -50,11 +92,11 @@
              "
              ))
 
-(defgeneric conversation (account key)
+(defgeneric conversation (account slug)
             (
              :documentation
              "
-             Look up a conversation.
+             Look up a conversation based on a string.
              "
              )
             )
@@ -67,11 +109,48 @@
              "
              )
             )
+
 (defgeneric messages (conversation limit &key query)
             (
              :documentation
              "
-             Get back a list of messages.
+             Get back a list of messages. The query is a string.
+             "
+             )
+            )
+
+(defgeneric author (message)
+            (
+             :documentation
+             "
+             Get back the author of this message.
+             "
+             )
+            )
+
+(defgeneric timestamp (message)
+            (
+             :documentation
+             "
+             Get back the timestamp of this message.
+             "
+             )
+            )
+
+(defgeneric replies (message)
+            (
+             :documentation
+             "
+             Get the replies of a message.
+             "
+             )
+            )
+
+(defgeneric body (message)
+            (
+             :documentation
+             "
+             Get back the body of this message.
              "
              )
             )
