@@ -31,8 +31,6 @@
      :accessor whoami
      :type pathname)))
 
-
-
 (defmethod pixie/client:make-account ((kind :fs) specifics)
   (pathname (gethash :directory specifics))
   (make-instance dir-account
@@ -105,148 +103,91 @@
                  :type
                  "log"))))
 
-(defclass log-message-seeker ()
-  ((ts :initarg :ts
-       :initform (error "Need timestamp.")
-       :accessor matcher-ts
-       :type local-time:timestamp)
-   (author
-     :initarg :author
-     :initform (error "Need an author.")
-     :accessor matcher-author
-     :documentation
-     "Sender of the message."
-     :type string)))
-
-;; aggregates matchers
-;; query is its own language. D'oh.
-
-(defclass compound-matcher ()
-  (matchers))
-
-(defclass since-matcher ()
-  (after-ts))
-;; should I even be using CLOS here.
-;; what about a dictionary mapping keys to functions.
-;; That seems like a better idea.
-;; TODO
-'(( :key . myfunc ))
-
-(defgeneric message-matches (message matcher))
-
-(defmethod message-matches (message (matcher null))
-  message)
-
-(defmethod message-matches (message (matcher log-message-matcher))
-  (and (equal (matcher-ts matcher)
-              (message-ts message))
-       (equal (matcher-author matcher)
-              (message-author message))
-       message))
-
-(defun find-message (messages matcher)
-  (declare (type author string)
-           (type ts string)
+(defun find-message (seek-author seek-ts messages)
+  (declare (type seek-author string)
+           (type seek-ts string)
            (type messages list))
-    (loop with matcher = (make-matcher query)
-          for message in messages
-          if (message-matches message matcher)
-          collect message)
-  )
+  (loop for message in messages
+        do
+        (when (and (local-time:timestamp= seek-ts (ts message))
+                   (string= seek-author (author message)))
+          (return message))
+        finally
+        return nil))
 
-(defun make-matcher (query)
-  (declare (type query hash-table))
-
-  (if (null query)
-    null
-    (make-instance
-      'log-message-matcher
-      :ts (local-time:parse-rfc3339-timestring
-      (gethash :timestamp hash))
-      :author (gethash :author hash))))
-
-(defmethod pixie/client:messages ((conversation conversation-log) limit &key query)
-  "
-  Return messages based on a query.
-  The query can have start date, end date, and reply-to, optionally.
-  Queries are always a map of strings.
-  "
-
-  )
-
-
-
-(defun make-matcher (query)
-  (declare (type query hash-table))
-  )
-
-
-(defun fs-messages (conversation limit &key query)
-  (declare (type fs-conversation conversation))
+(defmethod history ((conversation conversation-log) since limit)
+  (declare (type local-time:timestamp since)
+           (type (integer 0 1024) limit))
   (with-open-file
-    (f (logfile fs-conversation)
+    (f (log-file conversation)
        :external-format :utf-8 :direction :input)
-    (loop with matcher = (when query (make-matcher query))
-          with messages = nil
+    (loop with messages = nil
           for line in (readline f nil)
           while line
           do
           (cl-ppcre:register-groups-bind
-            (ts s r ra rt b)
-            ("^([^ ]+) ([^:]): (/reply ([^:]+)@([^ ]+))? (.*)$" line)
-            (if r
-              (make-instance
-                    fs-message
-                    :ts (local-time:parse-timestring ts)
-                    :in-reply-to (find-message ra rt messages)
-                    :author s
-                    :body b)
-
-            (push  messages))
+            ((#'local-time:parse-timestring log-ts)
+             s
+             r
+             ra
+             (#'local-time:parse-timestring rt)
+             b)
+            ("^([^ ]+) ([^:]+): (/reply ([^:]+)@([^ ]+))? (.*)$" line)
+            (when (local-time:timestamp>= log-ts since)
+              (push messages
+                    (make-instance
+                      'log-message
+                      :ts 
+                      log-ts
+                      :in-reply-to 
+                      (when r
+                        (find-message ra rt messages))
+                      :author s
+                      :body b))))
           finally
           (return messages))))
 
-(defmethod messages ((conversation fs-conversation) limit &key query)
-
-
-;; TODO Finish messages in terms of fs-messages
-;; TODO Finish `members` in terms of fs-messages
-:; TODO Finish post in 
-            (setf (gethash auth members) t))
+(defmethod pixie/client:members ((conversation conversation-log))
+  (with-open-file
+    (f (log-file conversation)
+       :external-format :utf-8 :direction :input)
+    (loop with members = nil
+          for line in (readline f nil)
+          while line
+          do
+          (cl-ppcre:register-groups-bind
+            (auth)
+            ("^[^ ]+ ([^:]+):.*$" line)
+            (pushnew auth members))
           finally
-          (return
-            (loop for author being the hash-keys of members collect author)))))
-  (
-(defmethod pixie/client:members ((conversation fs-conversation))
-  )
+          (return members))))
 
-(defmethod pixie/client:author ((message fs-message))
+(defmethod pixie/client:author ((message log-message))
   (author message))
 
-(defmethod timestamp (message)
-  (
-            (
-             :documentation
-             "
-             Get back the timestamp of this message.
-             "
-             )
-            )
+(defmethod pixie/client:timestamp ((message log-message))
+  (ts message))
 
-(defgeneric body (message)
-            (
-             :documentation
-             "
-             Get back the body of this message.
-             "
-             )
-            )
+(defmethod pixie/client:body ((message log-message))
+  (body message))
 
-(defgeneric post (conversation body &key in-reply-to)
+(defmethod post ((conversation conversation-log) body &key in-reply-to)
             (
              :documentation 
              "
              Post a message, optionally in reply to another message.
              "
              )
+(with-open-file
+    (f (log-file conversation)
+       :external-format :utf-8 :direction :output
+       :if-exists :append)
+    (format f 
+    (when (not (null in-reply-to))
+      (when (not (cl-ppcre:scan-to-strings "^[^:]+@[^ ]+$" in-reply-to))
+        (error "in-reply-to string is malformed."))
+      (format f "/reply ~A " in-reply-to))
+                    rt
+                    )
+
             )

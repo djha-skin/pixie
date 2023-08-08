@@ -46,7 +46,7 @@ QxAL9DWBg7kVtNLzaF8xtL>
   (declare (ignore argv))
   (let* ((config (with-open-file (in
                                   #P"./test/data/prototype-config.nrdl"
-                                  :direction :input 
+                                  :direction :input
                                   :external-format :utf-8)
                   (nrdl:parse-from in)))
         (client (pixie/client:make-client config)))
@@ -65,7 +65,13 @@ QxAL9DWBg7kVtNLzaF8xtL>
         (format strm "Conversation members for `~A`:"
                 (pixie/client:members conversation))
         (format strm "Messages in ~A:~%")
-        (loop for message in (pixie/client:messages conversation 10)
+        (loop for message in (pixie/client:history
+                               conversation
+                               (local-time:timestamp-
+                                 (local-time:now)
+                                 :day
+                                 1)
+                               10)
               do
               (format strm "  ~A ~A: ~A~%"
                       (pixie/client:timestamp
@@ -75,4 +81,17 @@ QxAL9DWBg7kVtNLzaF8xtL>
                       (pixie/client:body
                         message)))
         (pixie/client:post conversation "but why")
-        (pixie/client:post conversation "I decline." :in-reply-to 1)))))
+        (pixie/client:post conversation "I decline." :in-reply-to "bee@2023-08-06T12:00:00-0600"))
+
+      ;; with watch , i want to say,
+      ;; hey, watch, cool, but only until i tell you
+      ;; to stop. If you see something, do _x_ and tell me you did it.
+      ;; I think the above description is relatively complete. 
+      ;;
+
+      ;; So, make a thread. in that thread, i'll do stuff and everytime I do, I'll signal the calling thread with "I did something." ??? Or, I'll just submit a job. But a producer/consumer queue is a bit heavyweight for this.
+      (pixie/client:with-events
+        (conversation message)
+        (account 10)
+
+
