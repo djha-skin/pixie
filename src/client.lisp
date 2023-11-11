@@ -84,7 +84,7 @@
              )
             )
 
-(defgeneric conversation-names (account)
+(defgeneric featured-conversations (account)
             (
              :documentation
              "
@@ -123,7 +123,6 @@
 ;;
 ;; so there's really only two queries here: Search, and history.
 ;; Since we're supporting only two things, we should have two functions.
-
 (defgeneric history (conversation since limit)
             (
              :documentation
@@ -133,15 +132,14 @@
              )
             )
 
-; This is a 2.0
-;(defgeneric seek (account query)
-;            (
-;             :documentation
-;             "
-;             Search for a string in all the conversations.
-;             "
-;             )
-;            )
+(defgeneric seek (account query)
+            (
+             :documentation
+             "
+             Search for a string in all the conversations.
+             "
+             )
+            )
 
 (defgeneric author (message)
             (
@@ -187,74 +185,29 @@
              "
              )
             )
-(define-condition stop-watching
-  (signal)
-  ()
-  (:documentation
-    "
-    Use this to signal to the watching thread to stop watching. This signal
-    is intended to be used in a threaded context. One thread would signal the
-    watching thread using this signal. If used, it will stop the watch function
-    and cause it to return T, closing any necessary resources before doing so
-    ")
-    (:report (lambda (condition stream)
-               (format stream "Requesting the watcher to stop watching."))))
-
-(defgeneric watch (account callback)
-            (
-             :documentation
-             "
-             Watch an acccount for incoming messages.
-
-             This function is designed to work well in threaded or non-threaded
-             settings.
-
-             The function continues to watch, calling the callback whenever a
-             message comes in. Return the value of the return value of the callback,
-             if it is not nil.
-
-             If the returned value of the callback is nil, the function will
-             never retur
-
-             The function will signal an error in the usual way. It will also
-             respond to the `stop-watching` signal (or conditions subclassed
-             thereto). This signal will be handled by causing the function to
-             return nil. A error may be signaled instead of returning nil.
-
-             The drawback of this design is I can't force people to set a
-             restart, or even discuss how that would look. I can't enforce
-             the handling of the condition. Some more thought is in good order.
-
-             How even
-
-             So the 'even discuss how that would look' part is a code smell,
-             meaning I've gotten the wrong abstraction. I'm not doing something
-             right. But I think I 'm close.
-
-             The restart/condition is a way to get it to stop. Why not let
-             someone else make that part up? Let the implementer handle it.
-             After all, the implementer is the one which will be signaling
-
-             NO IT IS NOT
-
-             I AM GOING TO SIGNAL THAT. I, THE GUI IMPLEMENTER.
-
-             I will signal the `stop watching` on a ctrl+c or timeout.
-
-            See, I used to have it in my head that the watch fun wouldd be
-            asynchronous, returning immediately, and that the end watch would be
-            similar. But I rescinded this. So, I can't just stop watching
-            whenever I want. I *have* to use threading to accomplish that result, OR
-            in the callback.
-
-            Which is dumb. I don't want to _require_ threading, only accomodate it.
-
-            I could make the callback a sort of heartbeat deal, but this is a hack.
-
-            What an interesting design problem.
-            "
-                )
-            )
 
 
+(defgeneric watch (account callback &key timeout)
+  (
+   :documentation
+   "
+   Watch an acccount for incoming messages. This function is designed to work
+   well in threaded or non-threaded settings.
 
+   The function continues to watch, calling the callback whenever a message
+   comes in. If the callback returns a value other than nil, `watch` will return
+   `:watching-stopped-by-callback` as its first value and the value of the
+   callback as its second value.
+
+   If the returned value of the callback is nil, the function will never return
+   unless a timeout is specified. The timeout is advisory; `watch` may
+   return after the timeout due to implementation details, but should return
+   as soon as possible after the timeout expiry is noticed, returning
+   `:watching-stopped-by-timeout` as its first value and nil as its second
+   value.
+
+   The function `watch` must respond to the `stop-watching` signal (or
+   conditions subclassed thereto) by returning `:watching-stopped-by-signal`
+   as its first value and nil as its second value.
+   "
+  ))

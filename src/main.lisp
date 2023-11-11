@@ -30,8 +30,13 @@ QxAL9DWBg7kVtNLzaF8xtL>
 |#
 
 
-;; I need to write some code to get my juices flowing, and Don't have access to
-;; a CLI library's docs right now.
+;; I need to write some code to get my juices flowing, and Don't have access to a CLI library's docs
+;; right now. asdfasdf asdf adsf asdf adsf sadff asdf adsf sadf sadf asfd asdf asdf asdf fasdf asdff
+;; asdfd adsf asfdd sadf sdaf adsf adsf adsf asfd asfd asfd fsda sadf sdaf adsf asfd adsf sadf adsf
+;; adsf sfda fsda asfd asfd adsf adsf adsf sadf fsda fsda adsf fsda kjjV asfd asfd adsfd sdaf adsf
+;; asdf adsf adsf asfd sdaf adsf asfd sdaf
+;; asdf
+
 ;; So I'm just going too write a test case run-through, more or less.
 ;;
 ;; Steps:
@@ -82,7 +87,64 @@ QxAL9DWBg7kVtNLzaF8xtL>
                         message)))
         (pixie/client:post conversation "but why")
         (pixie/client:post conversation "I decline." :in-reply-to "bee@2023-08-06T12:00:00-0600"))
+      ;; Messages can just keep coming in. It's a web socket.
+      ;; That web socket needs to stay open.
+      ;; I can't make this synchronous unless I am the one opening the socket.
 
+
+   (let ((lparallel:*kernel* (lparallel:make-kernel 10))
+         (channel (lparallel:make-channel))
+         (queue (lparallel.queue:make-queue)))
+     (unwind-protect
+         (progn
+           (lparallel:submit-task #'pixie/client:watch account
+                                  (lambda (item)
+                                    (lparallel.queue:push-queue
+                                      item queue)) :timeout 300)
+           (loop for (status payload) = (lparallel.queue:pop-queue queue)
+                 while status != :disconnect
+                 while time < 300
+                 do
+                 (destructuring-bind (conversation message)
+                     payload
+                   (format strm "  ~A ~A: ~A~%"
+                           (pixie/client:timestamp
+                             message)
+                           (pixie/client:author
+                             message)
+                           (pixie/client:body
+                             message))))
+           (receive-result channel))
+
+     (end-kernel lparallel:*kernel*)))
+           (format strm "  ~A ~A: ~A~%"
+                   (pixie/client:timestamp
+                     message)
+                   (pixie/client:author
+                     message)
+                   (pixie/client:body
+                     message))))
+      ;; - Post a message to a conversation
+      ;; - Die.
+      (pixie/client:disconnect account)
+      (pixie/client:stop client))))
+     
+
+
+
+
+     (lparallel:submit-task #'pixie/client:st
+
+
+        
+      (pixe/client:watch account 300 (lambda (message)
+                                       (format strm "  ~A ~A: ~A~%"
+                                               (pixie/client:timestamp
+                                                 message)
+                                               (pixie/client:author
+                                                 message)
+                                               (pixie/client:body
+                                                 message))))
       ;; with watch , i want to say,
       ;; hey, watch, cool, but only until i tell you
       ;; to stop. If you see something, do _x_ and tell me you did it.

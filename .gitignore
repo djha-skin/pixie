@@ -1,3 +1,8 @@
+# build files
+/.qlot/
+/.bundle-libs/
+
+# executables
 *.abcl
 *.fasl
 *.dx32fsl
@@ -5,15 +10,15 @@
 *.lx32fsl
 *.lx64fsl
 *.x86f
+
+# Editor files
 *~
 .#*
 .*.sw[a-z]
 .slime_paste
-/.vagrant/
-\'
-
-/lighttpd-environment/test-data
+/.vscode/
 /.repl/ros_history
 
-/.qlot/
-/.bundle-libs/
+# test files
+/.vagrant/
+/lighttpd-environment/test-data
