@@ -29,6 +29,14 @@ QxAL9DWBg7kVtNLzaF8xtL>
 "https://api.groupme.com/v3/groups?token=<REDACTED>"
 |#
 
+(defmacro with-lparallel-nursery ((channel queue &key (pool-size 10)) &body body)
+   `(let ((lparallel:*kernel* (lparallel:make-kernel ,pool-size))
+         (,channel (lparallel:make-channel))
+         (,queue (lparallel.queue:make-queue)))
+     (unwind-protect
+         (progn
+           ,body)
+     (end-kernel lparallel:*kernel*))))
 
 ;; I need to write some code to get my juices flowing, and Don't have access to a CLI library's docs
 ;; right now. asdfasdf asdf adsf asdf adsf sadff asdf adsf sadf sadf asfd asdf asdf asdf fasdf asdff
@@ -44,8 +52,31 @@ QxAL9DWBg7kVtNLzaF8xtL>
 ;; - List messages in a conversation
 ;; - List members in a conversation
 ;; - Post a message to a conversation
+;; - watch for messages for approximately 1 minute
 ;; - Die.
 
+
+(defun watch-print-messages (queue)
+           (loop for (event status payload) = (lparallel.queue:pop-queue queue)
+                 while status != :disconnect
+                 do
+                 (destructuring-bind (conversation message)
+                     payload
+                   (format strm "  ~A ~A: ~A~%"
+                           (pixie/client:timestamp
+                             message)
+                           (pixie/client:author
+                             message)
+                           (pixie/client:body
+                             message))))
+           (receive-result channel)
+           (format strm "  ~A ~A: ~A~%"
+                   (pixie/client:timestamp
+                     message)
+                   (pixie/client:author
+                     message)
+                   (pixie/client:body
+                     message))))
 
 (defun main (argv &optional (strm t))
   (declare (ignore argv))
@@ -90,44 +121,17 @@ QxAL9DWBg7kVtNLzaF8xtL>
       ;; Messages can just keep coming in. It's a web socket.
       ;; That web socket needs to stay open.
       ;; I can't make this synchronous unless I am the one opening the socket.
+      (with-lparallel-nursery (channel queue)
+        (lparallel:submit-task #'pixie/client:watch account
+                              (lambda (item)
+                                (lparallel.queue:push-queue
+                                  item queue)) :timeout 60)
+        (lparallel:submit-task #'watch-print-messages))
 
-
-   (let ((lparallel:*kernel* (lparallel:make-kernel 10))
-         (channel (lparallel:make-channel))
-         (queue (lparallel.queue:make-queue)))
-     (unwind-protect
-         (progn
-           (lparallel:submit-task #'pixie/client:watch account
-                                  (lambda (item)
-                                    (lparallel.queue:push-queue
-                                      item queue)) :timeout 300)
-           (loop for (status payload) = (lparallel.queue:pop-queue queue)
-                 while status != :disconnect
-                 while time < 300
-                 do
-                 (destructuring-bind (conversation message)
-                     payload
-                   (format strm "  ~A ~A: ~A~%"
-                           (pixie/client:timestamp
-                             message)
-                           (pixie/client:author
-                             message)
-                           (pixie/client:body
-                             message))))
-           (receive-result channel))
-
-     (end-kernel lparallel:*kernel*)))
-           (format strm "  ~A ~A: ~A~%"
-                   (pixie/client:timestamp
-                     message)
-                   (pixie/client:author
-                     message)
-                   (pixie/client:body
-                     message))))
       ;; - Post a message to a conversation
       ;; - Die.
       (pixie/client:disconnect account)
-      (pixie/client:stop client))))
+      (pixie/client:stop client))
      
 
 
