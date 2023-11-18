@@ -3,4 +3,5 @@ ql dexador
 ql quri
 ql local-time
 ql file-notify
+ql lparallel
 git nrdl git@git.sr.ht:~skin/nrdl :branch main
