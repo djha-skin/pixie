@@ -29,7 +29,63 @@ QxAL9DWBg7kVtNLzaF8xtL>
 "https://api.groupme.com/v3/groups?token=<REDACTED>"
 |#
 
-(defmacro with-lparallel-nursery ((channel queue &key (pool-size 10)) &body body)
+(multiple-value-list 3)
+
+(loop for i from 0 below 10
+      collect (cons i (multiple-value-list (floor i 2))))
+
+
+;; Create a function that closely follows the nursery parallelization pattern.
+(defun with-lparallel-nursery (tasks)
+  (let ((pool-size (length tasks))
+        (lparallel:*kernel* (lparallel:make-kernel pool-size))
+        (lparallel:*debug-tasks-p* nil)
+        (channel (lparallel:make-channel)))
+    (unwind-protect
+        (loop for (name (task &rest args)) in tasks
+              do
+              (lparallel:submit-task channel
+                                     (lambda ()
+                                       (cons
+                                         name
+                                       (multiple-value-list
+                                         (apply (function task) args))))))
+      (loop for i from 0 below (length tasks)
+            collect (receive-result channel))
+      (end-kernel lparallel:*kernel*))))
+
+(let ((a (unwind-protect
+    (+ 1 2)
+  (print "hi"))))
+  (format nil "A is ~A" a))
+
+
+(defmacro with-lparallel-nursery ((queue &key tasks) &body body)
+  (let ((pool-size (length tasks))
+        (channel (gensym "channel"))
+        (quoted-tasks (loop for task in tasks
+                            collect (cons `(function ,(first task))
+                                          (rest task)))))
+    `(let ((lparallel:*kernel* (lparallel:make-kernel ,pool-size))
+           (lparallel:*debug-tasks-p* nil)
+           (,channel (lparallel:make-channel))
+           (,queue (lparallel.queue:make-queue)))
+       (unwind-protect
+           (progn
+             ,@(loop for task in quoted-tasks
+                     collect
+                     `(lparallel:submit-task ,channel
+                                             ,@task))
+             ,@(loop for task in quoted-tasks
+                     collect
+                     `(lparallel:receive-result ,channel)))
+         (end-kernel lparallel:*kernel*))))
+
+   `(let ((lparallel:*kernel* (lparallel:make-kernel ,pool-size))
+
+         (,queue (lparallel.queue:make-queue)))
+
+
    `(let ((lparallel:*kernel* (lparallel:make-kernel ,pool-size))
          (,channel (lparallel:make-channel))
          (,queue (lparallel.queue:make-queue)))
@@ -38,14 +94,8 @@ QxAL9DWBg7kVtNLzaF8xtL>
            ,body)
      (end-kernel lparallel:*kernel*))))
 
-;; I need to write some code to get my juices flowing, and Don't have access to a CLI library's docs
-;; right now. asdfasdf asdf adsf asdf adsf sadff asdf adsf sadf sadf asfd asdf asdf asdf fasdf asdff
-;; asdfd adsf asfdd sadf sdaf adsf adsf adsf asfd asfd asfd fsda sadf sdaf adsf asfd adsf sadf adsf
-;; adsf sfda fsda asfd asfd adsf adsf adsf sadf fsda fsda adsf fsda kjjV asfd asfd adsfd sdaf adsf
-;; asdf adsf adsf asfd sdaf adsf asfd sdaf
-;; asdf
 
-;; So I'm just going too write a test case run-through, more or less.
+;; So I'm just going to write a test case run-through, more or less.
 ;;
 ;; Steps:
 ;; - List conversations in that account
@@ -121,17 +171,29 @@ QxAL9DWBg7kVtNLzaF8xtL>
       ;; Messages can just keep coming in. It's a web socket.
       ;; That web socket needs to stay open.
       ;; I can't make this synchronous unless I am the one opening the socket.
-      (with-lparallel-nursery (channel queue)
-        (lparallel:submit-task #'pixie/client:watch account
-                              (lambda (item)
-                                (lparallel.queue:push-queue
-                                  item queue)) :timeout 60)
-        (lparallel:submit-task #'watch-print-messages))
 
-      ;; - Post a message to a conversation
-      ;; - Die.
-      (pixie/client:disconnect account)
-      (pixie/client:stop client))
+
+
+      (with-lparallel-nursery (queue
+                        :tasks
+                        (list
+
+                        (pixie/client:watch account (lambda (message)
+                                                      (lparallel.queue:push-queue
+                                                        message queue)) :timeout 60)
+                        (watch-print-messages queue))
+                                ;;
+
+                                (
+
+                                 (lparallel:submit-task channel #'pixie/client:watch account
+                                                        (lambda (item)
+                                                          (lparallel.queue:push-queue
+                                                            item queue)) :timeout 60)
+                                 (lparallel:submit-task channel #'watch-print-messages)) - Post a message to a conversation
+                                ;; - Die.
+                                (pixie/client:disconnect account)
+                                (pixie/client:stop client))
      
 
 

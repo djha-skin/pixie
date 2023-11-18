@@ -187,7 +187,7 @@
             )
 
 
-(defgeneric watch (account callback &key timeout)
+(defgeneric watch (account callback &key filters timeout)
   (
    :documentation
    "
@@ -196,18 +196,19 @@
 
    The function continues to watch, calling the callback whenever a message
    comes in. If the callback returns a value other than nil, `watch` will return
-   `:watching-stopped-by-callback` as its first value and the value of the
-   callback as its second value.
+   the return value of the callback as its first value and :callback as its
+   second value.
 
    If the returned value of the callback is nil, the function will never return
    unless a timeout is specified. The timeout is advisory; `watch` may
    return after the timeout due to implementation details, but should return
-   as soon as possible after the timeout expiry is noticed, returning
-   `:watching-stopped-by-timeout` as its first value and nil as its second
-   value.
+   as soon as possible after the timeout expiry is noticed.
+   It returns `NIL` as its first value and `:timeout` as its second value.
 
    The function `watch` must respond to the `stop-watching` signal (or
-   conditions subclassed thereto) by returning `:watching-stopped-by-signal`
-   as its first value and nil as its second value.
+   conditions subclassed thereto) by returning nil as its first value and
+   `:signal` as its second value.
+
+   Filters is an alist of filters to apply to the messages.
    "
   ))

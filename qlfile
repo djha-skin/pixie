@@ -2,4 +2,5 @@ ql alexandria
 ql dexador
 ql quri
 ql local-time
+ql file-notify
 git nrdl git@git.sr.ht:~skin/nrdl :branch main
