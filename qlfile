@@ -1,4 +1,5 @@
 ql alexandria
+git cl-i git@git.sr.ht:~skin/cl-i :branch main
 ql dexador
 ql quri
 ql local-time

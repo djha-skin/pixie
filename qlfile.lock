@@ -1,23 +1,27 @@
 ("quicklisp" .
  (:class qlot/source/dist:source-dist
   :initargs (:distribution "http://beta.quicklisp.org/dist/quicklisp.txt" :%version :latest)
-  :version "2023-02-15"))
+  :version "2023-10-21"))
 ("alexandria" .
  (:class qlot/source/ql:source-ql
   :initargs (:%version :latest)
-  :version "ql-2023-02-15"))
+  :version "ql-2023-10-21"))
+("cl-i" .
+ (:class qlot/source/git:source-git
+  :initargs (:remote-url "git@git.sr.ht:~skin/cl-i" :branch "main")
+  :version "git-87224806b2d38cf515d0e117f3d0022b43e7972c"))
 ("dexador" .
  (:class qlot/source/ql:source-ql
   :initargs (:%version :latest)
-  :version "ql-2023-02-15"))
+  :version "ql-2023-10-21"))
 ("quri" .
  (:class qlot/source/ql:source-ql
   :initargs (:%version :latest)
-  :version "ql-2023-02-15"))
+  :version "ql-2023-10-21"))
 ("local-time" .
  (:class qlot/source/ql:source-ql
   :initargs (:%version :latest)
-  :version "ql-2023-06-18"))
+  :version "ql-2023-10-21"))
 ("file-notify" .
  (:class qlot/source/ql:source-ql
   :initargs (:%version :latest)
@@ -29,4 +33,4 @@
 ("nrdl" .
  (:class qlot/source/git:source-git
   :initargs (:remote-url "git@git.sr.ht:~skin/nrdl" :branch "main")
-  :version "git-d53f6fb41273df91d72cd2af6a1485c916016711"))
+  :version "git-dce47421186d31ab49ed1c5eedc8f17a98291abb"))

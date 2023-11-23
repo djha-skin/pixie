@@ -1,74 +1,98 @@
-#+(or)
-(declaim (optimize (speed 0) (space 0) (debug 3)))
-(in-package #:cl-user)
-(defpackage
-  #:pixie (:use #:cl)
-  (:documentation
-    "
-    Pixie is a small, mischievous chat client.
 
-    It allows the user to work from the CLI with modern chat services.
-    "
-    )
-
-    (:import-from #:nrdl)
-    (:import-from #:pixie/client)
-    (:import-from #:pixie/clients/fs)
-  (:export
-   main)
-    )
-(in-package #:pixie)
-
-(defun
-  execute-program
-  (program-name
-    environment-variables
-    functions
-    &optional &key
-    cli-arguments
-    cli-aliases
-    defaults
-    (setup #'identity)
-    (teardown #'identity)
-    root-path
-    reference-file
-    environment-aliases
-    (list-sep ",")
-    (map-sep "=")
-    (str-hash-init-args
-      `(:test ,#'equal))
-    kw-hash-init-args)
-  (declare (type string program-name)
-           (type hash-table environment-variables)
-           (type list functions)
-           (type list cli-arguments)
-           (type list cli-aliases)
-           (type list environment-aliases)
-           (type list str-hash-init-args)
-           (type list kw-hash-init-args)
-           (type (or null pathname) root-path)
-           (type (or null pathname) reference-file)
-           (type list defaults)
-           (type string list-sep)
-           (type string map-sep)
-           (type function setup)
-           (type function teardown))
-
-
-
-
-
-    (mapcar (lambda (s) (uiop:split-string s :separator "="))
-            )))
-           (get-environment-variables))
-(get-environment-variables)
-
-(defun main (argv &optional (strm t))
-  (declare (type list argv))
-    (cl-i:execute-program
+;;;; Create a function that closely follows the nursery parallelization pattern.
+;;(defun with-lparallel-nursery (tasks)
+;;  (let ((pool-size (length tasks))
+;;        (lparallel:*kernel* (lparallel:make-kernel pool-size))
+;;        (lparallel:*debug-tasks-p* nil)
+;;        (channel (lparallel:make-channel)))
+;;    (unwind-protect
+;;        (loop for (name (task &rest args)) in tasks
+;;              do
+;;              (lparallel:submit-task channel
+;;                                     (lambda ()
+;;                                       (cons
+;;                                         name
+;;                                       (multiple-value-list
+;;                                         (apply (function task) args))))))
+;;      (loop for i from 0 below (length tasks)
+;;            collect (receive-result channel))
+;;      (end-kernel lparallel:*kernel*))))
+;;
+;;(let ((a (unwind-protect
+;;    (+ 1 2)
+;;  (print "hi"))))
+;;  (format nil "A is ~A" a))
+;;
+;;
+;;(defmacro with-lparallel-nursery ((queue &key tasks) &body body)
+;;  (let ((pool-size (length tasks))
+;;        (channel (gensym "channel"))
+;;        (quoted-tasks (loop for task in tasks
+;;                            collect (cons `(function ,(first task))
+;;                                          (rest task)))))
+;;    `(let ((lparallel:*kernel* (lparallel:make-kernel ,pool-size))
+;;           (lparallel:*debug-tasks-p* nil)
+;;           (,channel (lparallel:make-channel))
+;;           (,queue (lparallel.queue:make-queue)))
+;;       (unwind-protect
+;;           (progn
+;;             ,@(loop for task in quoted-tasks
+;;                     collect
+;;                     `(lparallel:submit-task ,channel
+;;                                             ,@task))
+;;             ,@(loop for task in quoted-tasks
+;;                     collect
+;;                     `(lparallel:receive-result ,channel)))
+;;         (end-kernel lparallel:*kernel*))))
+;;
+;;   `(let ((lparallel:*kernel* (lparallel:make-kernel ,pool-size))
+;;
+;;         (,queue (lparallel.queue:make-queue)))
+;;
+;;
+;;   `(let ((lparallel:*kernel* (lparallel:make-kernel ,pool-size))
+;;         (,channel (lparallel:make-channel))
+;;         (,queue (lparallel.queue:make-queue)))
+;;     (unwind-protect
+;;         (progn
+;;           ,body)
+;;     (end-kernel lparallel:*kernel*))))
 
 
-  
+;; So I'm just going to write a test case run-through, more or less.
+;;
+;; Steps:
+;; - List conversations in that account
+;; - List messages in a conversation
+;; - List members in a conversation
+;; - Post a message to a conversation
+;; - watch for messages for approximately 1 minute
+;; - Die.
+
+(defun watch-print-messages (queue)
+           (loop for (event status payload) = (lparallel.queue:pop-queue queue)
+                 while status != :disconnect
+                 do
+                 (destructuring-bind (conversation message)
+                     payload
+                   (format strm "  ~A ~A: ~A~%"
+                           (pixie/client:timestamp
+                             message)
+                           (pixie/client:author
+                             message)
+                           (pixie/client:body
+                             message))))
+           (receive-result channel)
+           (format strm "  ~A ~A: ~A~%"
+                   (pixie/client:timestamp
+                     message)
+                   (pixie/client:author
+                     message)
+                   (pixie/client:body
+                     message))))
+
+         (defun main (argv &optional (strm t))
+  (declare (ignore argv))
   (let* ((config (with-open-file (in
                                   #P"./test/data/prototype-config.nrdl"
                                   :direction :input
@@ -160,5 +184,3 @@
       (pixie/client:with-events
         (conversation message)
         (account 10)
-
-
