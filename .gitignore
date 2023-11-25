@@ -1,6 +1,9 @@
 # build files
 /.qlot/
 /.bundle-libs/
+/dist/
+/build/
+/.pixie.nrdl
 
 # executables
 *.abcl

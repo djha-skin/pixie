@@ -1,8 +1,8 @@
 ql alexandria
 git cl-i git@git.sr.ht:~skin/cl-i :branch main
+git nrdl git@git.sr.ht:~skin/nrdl :ref 0.3.0
 ql dexador
 ql quri
 ql local-time
 ql file-notify
 ql lparallel
-git nrdl git@git.sr.ht:~skin/nrdl :branch main

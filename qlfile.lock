@@ -9,7 +9,11 @@
 ("cl-i" .
  (:class qlot/source/git:source-git
   :initargs (:remote-url "git@git.sr.ht:~skin/cl-i" :branch "main")
-  :version "git-87224806b2d38cf515d0e117f3d0022b43e7972c"))
+  :version "git-a2ff3181b992dcfd4fd20f05b536c82d42dcc49f"))
+("nrdl" .
+ (:class qlot/source/git:source-git
+  :initargs (:remote-url "git@git.sr.ht:~skin/nrdl" :ref "0.3.0")
+  :version "git-0.3.0"))
 ("dexador" .
  (:class qlot/source/ql:source-ql
   :initargs (:%version :latest)
@@ -30,7 +34,3 @@
  (:class qlot/source/ql:source-ql
   :initargs (:%version :latest)
   :version "ql-2023-10-21"))
-("nrdl" .
- (:class qlot/source/git:source-git
-  :initargs (:remote-url "git@git.sr.ht:~skin/nrdl" :branch "main")
-  :version "git-dce47421186d31ab49ed1c5eedc8f17a98291abb"))

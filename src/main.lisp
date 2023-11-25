@@ -1,5 +1,8 @@
 #+(or)
-(declaim (optimize (speed 0) (space 0) (debug 3)))
+(progn
+  (declaim (optimize (speed 0) (space 0) (debug 3)))
+  (asdf:load-system "pixie"))
+
 (in-package #:cl-user)
 (defpackage
   #:pixie (:use #:cl)
@@ -12,18 +15,24 @@
     )
 
     (:import-from #:nrdl)
-    (:import-from #:pixie/client)
-    (:import-from #:pixie/clients/fs)
+    (:import-from #:uiop)
+    ;(:import-from #:pixie/client)
+    ;(:import-from #:pixie/clients/fs)
   (:export
    main)
     )
 (in-package #:pixie)
 
-
 (defun stub (options name)
-  (format strm "~A~%" name)
-  (loop for (k v) being the hash-key-pairs of options
-        do (format strm "~40@A: ~40A~%" k v)))
+  (let ((strm (gethash :strm options)))
+    (format strm "~A~%" name)
+    (loop for k being the hash-keys of options
+          using (hash-value v)
+          do (format strm "~39@A: ~A~%" k v)
+          finally (return (alexandria:alist-hash-table
+                            `((:status . :successful)
+                              (:options . ,options))
+                            :test #'equal)))))
 
 (defun history (options)
   (declare (type hash-table options))
@@ -37,9 +46,9 @@
   (declare (type hash-table options))
   (stub options "watch"))
 
-(defun list (options)
+(defun list-conversations (options)
   (declare (type hash-table options))
-  (stub options "list"))
+  (stub options "list-conversations"))
 
 (defun help (options)
   (declare (type hash-table options))
@@ -47,22 +56,24 @@
 
 (defun main (argv &key (strm t))
   (declare (type list argv))
-  (multiple-value-bind (code result)
-  (cl-i:execute-program
-    "pixie"
-    (cl-i:system-environment-variables)
-    `(
-      ("history" . ,#'history)
-      ("post" . ,#'post)
-      ("watch" . ,#'watch)
-      ("list" . ,#'list)
-      ("help" . ,#'help)
-      )
-    :cli-arguments argv
-    :setup (lambda (opts)
-             (setf (gethash :strm opts) strm))
-    :teardown (lambda (opts)
-                (format (gethash :strm opts) "~%")))
-    (format "~A~%" result)
-    (when (not (zerop code))
-      (error "pixie exited with code ~A" code))))
+  (uiop:quit
+    (cl-i:execute-program
+      "pixie"
+      (cl-i:system-environment-variables)
+      `(
+        (() . ,#'help)
+        (("history") . ,#'history)
+        (("post") . ,#'post)
+        (("watch") . ,#'watch)
+        (("list-conversations") . ,#'list-conversations)
+        (("help") . ,#'help)
+        )
+      :cli-arguments argv
+      :setup (lambda (opts)
+               (setf (gethash :strm opts) strm)
+               opts)
+      :teardown (lambda (result)
+                  (format strm "~A~%"
+                          (cl-i:generate-string result :pretty 4)
+                          )
+                  result))))
