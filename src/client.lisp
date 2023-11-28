@@ -14,7 +14,8 @@
     account-names
     account
     make-account
-    conversations
+    whoami
+    ;conversations
     ;connect
     ;name
     ;conversation-names
@@ -66,23 +67,24 @@
              )
             )
 
-(defgeneric conversations (account)
+(defgeneric whoami (account)
             (
              :documentation
              "
-             Return a list of featured conversations.
+             Return the slug of the author of the client's messages.
              "
-             ))
+             )
+            )
 
-;(defgeneric whoami (account)
+;(defgeneric conversations (account)
 ;            (
 ;             :documentation
 ;             "
-;             Return the slug of the author of the client's messages.
+;             Return a list of featured conversations.
 ;             "
-;             )
-;            )
+;             ))
 ;
+
 ;(defgeneric connect (account)
 ;            (
 ;             :documentation

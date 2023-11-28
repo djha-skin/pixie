@@ -7,6 +7,7 @@
     "
     This is the groupme chat client for Pixie.
     ")
+    (:import-from #:skin.djha.pixie/client)
     (:import-from #:alexandria)
     (:import-from #:dexador)
     (:import-from #:quri)
@@ -45,6 +46,15 @@
     "
     )
   )
+
+(defmethod skin.djha.pixie/client:make-account ((kind :groupme) specifics)
+  (declare (type hash-table specifics))
+  (make-instance 'groupme-client
+                 :api-token (gethash "api-token" specifics)
+                 :scheme (gethash "scheme" specifics "https")
+                 :host (gethash "host" specifics "api.groupme.com")
+                 :base-path (gethash "base-path" specifics "v3")))
+
 (defun simple-get
   (
    client
@@ -72,50 +82,54 @@
         (with-input-from-string (strm response)
           (nrdl:parse-from strm))))))
 
-(defun get-group-messages
-  (
-   client
-   id
-   (limit 10000)
-   &key
-   since
-   until
-   )
-  (declare (type groupme-client client)
-           (type list query)
-           (type integer page))
-  (loop with messages = (make-array 10 :fill-pointer t)
-        with query = `(("token" . ,(api-token client)))
-        with response = (simple-get client 
-                                    :path
-                                    (format "~{/~A~}"
-                                            `("groups"
-                                              ,id
-                                              "messages")))
-        do
-        (loop for msg across (gethash "messages")
+(defmethod skin.djha.pixie/client:whoami
+    ((client groupme-client))
+    (gethash "response"
+             (simple-get client
+                         :path '("users" "me"))))
 
-        while 
-
-
-                                    groups/(multiple-value-bind
-                          (dexador:get
-                          (quri:make-uri
-                            :scheme (scheme client)
-                            :host (host clieent)
-                            :path (format nil "/~A~{/~A~}"
-                                          (base-path client))
-                            :query query)
-  (multiple-value-bind
-    (response code headers redir)
-      (let* ((q (acons "token" (api-token client) query))
-             (
-             (q (acons "
-        (quri:make-uri
-          :scheme (scheme client)
-          :host (host client)
-          :query q)))
-
+;(defun get-group-messages
+;  (
+;   client
+;   id
+;   (limit 10000)
+;   &key
+;   since
+;   until
+;   )
+;  (declare (type groupme-client client)
+;           (type list query)
+;           (type integer page))
+;  (loop with messages = (make-array 10 :fill-pointer t)
+;        with query = `(("token" . ,(api-token client)))
+;        with response = (simple-get client 
+;                                    :path
+;                                    (format "~{/~A~}"
+;                                            `("groups"
+;                                              ,id
+;                                              "messages")))
+;        do
+;        (loop for msg across (gethash "messages")
+;
+;
+;                                    groups/(multiple-value-bind
+;                          (dexador:get
+;                          (quri:make-uri
+;                            :scheme (scheme client)
+;                            :host (host clieent)
+;                            :path (format nil "/~A~{/~A~}"
+;                                          (base-path client))
+;                            :query query)
+;  (multiple-value-bind
+;    (response code headers redir)
+;      (let* ((q (acons "token" (api-token client) query))
+;             (
+;             (q (acons "
+;        (quri:make-uri
+;          :scheme (scheme client)
+;          :host (host client)
+;          :query q)))
+;
 (defun get-paginated
   (
    client
@@ -154,11 +168,11 @@
     (cons 'vector
   (loop for page = 1 then (+ page 1)
         for response = (apply
-                         #'groupme-get-paginated
+                         #'get-paginated
                             (concatenate
                               'list
-                              `(:page ,page)
-                              groupme-get-paginated-args))
+                              groupme-get-paginated-args
+                              `(:page ,page)))
         while (> (length response) 0)
         collect response))))
 
@@ -197,20 +211,6 @@
         finally
         (return building)))
 
-(defun make-groupme-client
-   (
-    api-token
-    &key
-    (scheme "https")
-    (host "api.groupme.com")
-    (base-path "v3")
-    )
-   (make-instance 'groupme-client
-                  :api-token api-token
-                  :scheme scheme
-                  :host host
-                  :base-path base-path
-                  :ids-names
 
 (defmethod skin.djha.pixie/client:rooms ((client groupme-client))
   (loop with ids = (make-hash-table :test #'equal)

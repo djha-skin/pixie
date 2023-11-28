@@ -16,8 +16,8 @@
 
     (:import-from #:nrdl)
     (:import-from #:uiop)
-    ;(:import-from #:pixie/client)
-    ;(:import-from #:pixie/clients/fs)
+    (:import-from #:pixie/client)
+    (:import-from #:pixie/clients/groupme)
   (:export
    main)
     )
@@ -36,7 +36,11 @@
 
 (defun whoami (options)
   (declare (type hash-table options))
-  (stub options "whoami"))
+  (let ((client (skin.djha.pixie/client:make-client options)))
+    (alexandria:alist-hash-table `((:status . :successful)
+                                   (:options . ,options)
+                                   (:whoami . ,(skin.djha.pixie/client:whoami client)))
+                                 :test #'equal)))
 
 (defun history (options)
   (declare (type hash-table options))
