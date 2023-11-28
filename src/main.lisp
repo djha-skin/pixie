@@ -34,6 +34,10 @@
                               (:options . ,options))
                             :test #'equal)))))
 
+(defun whoami (options)
+  (declare (type hash-table options))
+  (stub options "whoami"))
+
 (defun history (options)
   (declare (type hash-table options))
   (stub options "history"))
@@ -62,6 +66,7 @@
       (cl-i:system-environment-variables)
       `(
         (() . ,#'help)
+        (("whoami") . ,#'whoami)
         (("history") . ,#'history)
         (("post") . ,#'post)
         (("watch") . ,#'watch)
