@@ -30,34 +30,6 @@
 
 (in-package #:skin.djha.pixie/client)
 
-(defclass root ()
-  ((accounts :initarg :accounts
-             :initform (error "Must specify accounts.")
-             :accessor accounts
-             :type hash-table)))
-
-(defun make-client (config)
-  (let ((account-objects (make-hash-table :test #'equal)))
-    (loop for slug being the hash-keys of (gethash :accounts config)
-          using (hash-value payload)
-          do
-          (loop for kind being the hash-keys of payload
-                then (error "Too many kinds.")
-                using (hash-value specifics)
-                do
-                (setf (gethash slug account-objects)
-                      (skin.djha.pixie/client:make-account
-                        kind
-                        specifics)))))
-  (make-instance 'root :accounts account-objects))
-
-(defun account-names (client)
-  (loop for acc being the hash-keys of (accounts client)
-        collect acc))
-
-(defun account (client slug)
-  (gethash slug (accounts client)))
-
 (defgeneric make-account (kind specifics)
             (
              :documentation
@@ -75,6 +47,35 @@
              "
              )
             )
+
+(defclass root ()
+  ((accounts :initarg :accounts
+             :initform (error "Must specify accounts.")
+             :accessor accounts
+             :type hash-table)))
+
+(defun make-client (config)
+  (let ((account-objects (make-hash-table :test #'equal)))
+    (loop for slug being the hash-keys of (gethash :accounts config)
+          using (hash-value payload)
+          do
+          (if (> (hash-table-size payload) 1)
+              (error "Too many kinds.")
+              (loop for kind being the hash-keys of payload
+                    using (hash-value specifics)
+                    do
+                    (setf (gethash slug account-objects)
+                          (skin.djha.pixie/client:make-account
+                            kind
+                            specifics)))))
+  (make-instance 'root :accounts account-objects)))
+
+(defun account-names (client)
+  (loop for acc being the hash-keys of (accounts client)
+        collect acc))
+
+(defun account (client slug)
+  (gethash slug (accounts client)))
 
 ;(defgeneric conversations (account)
 ;            (
