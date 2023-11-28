@@ -1,5 +1,10 @@
 #+(or)
-(declaim (optimize (speed 0) (space 0) (debug 3)))
+(progn
+  (declaim (optimize (speed 0) (space 0) (debug 3)))
+  (asdf:load-system "nrdl")
+  (asdf:load-system "quri")
+  (asdf:load-system "dexador"))
+
 (in-package #:cl-user)
 (defpackage
   #:skin.djha.pixie/client/groupme (:use #:cl)
