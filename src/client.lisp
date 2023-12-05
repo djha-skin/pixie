@@ -59,7 +59,7 @@
     (loop for slug being the hash-keys of (gethash :accounts config)
           using (hash-value payload)
           do
-          (if (> (hash-table-size payload) 1)
+          (if (> (hash-table-count payload) 1)
               (error "Too many kinds.")
               (loop for kind being the hash-keys of payload
                     using (hash-value specifics)

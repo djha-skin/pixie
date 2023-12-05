@@ -16,6 +16,6 @@ exec ros -Q -- $0 "$@"
 
 (defun main (&rest argv)
   (declare (ignorable argv))
-  (pixie:main argv))
+  (pixie:entrypoint argv))
 
 ;;; vim: set ft=lisp lisp:

@@ -5,7 +5,7 @@
 
 (in-package #:cl-user)
 (defpackage
-  #:pixie (:use #:cl)
+  #:skin.djha.pixie (:use #:cl)
   (:documentation
     "
     Pixie is a small, mischievous chat client.
@@ -16,12 +16,13 @@
 
     (:import-from #:nrdl)
     (:import-from #:uiop)
-    (:import-from #:pixie/client)
-    (:import-from #:pixie/clients/groupme)
+    (:import-from #:skin.djha.pixie/client)
+    (:import-from #:skin.djha.pixie/clients/groupme)
   (:export
-   main)
+   main
+   entrypoint)
     )
-(in-package #:pixie)
+(in-package #:skin.djha.pixie)
 
 (defun stub (options name)
   (let ((strm (gethash :strm options)))
@@ -34,13 +35,32 @@
                               (:options . ,options))
                             :test #'equal)))))
 
+;; TODO: Account-list
+(defun account-list (options)
+  (declare (type hash-table options))
+  (alexandria:alist-hash-table `((:status . :successful)
+                                 (:accounts .
+                                  ,(skin.djha.pixie/client:account-names
+                                     (skin.djha.pixie/client:make-client
+                                       options))))
+                               :test #'equal))
+
 (defun whoami (options)
   (declare (type hash-table options))
-  (let ((client (skin.djha.pixie/client:make-client options)))
-    (alexandria:alist-hash-table `((:status . :successful)
-                                   (:options . ,options)
-                                   (:whoami . ,(skin.djha.pixie/client:whoami client)))
-                                 :test #'equal)))
+  (if (null (gethash :account options))
+      (alexandria:alist-hash-table `((:status . :cl-usage-error)
+                                     (:options . ,options)
+                                     (:error . "No account specified"))
+                                   :test #'equal)
+      (let ((client (skin.djha.pixie/client:make-client options)))
+        (format t "~A" (skin.djha.pixie/client:account-names client))
+        (alexandria:alist-hash-table `((:status . :successful)
+                                       (:whoami .
+                                        ,(skin.djha.pixie/client:whoami
+                                           (skin.djha.pixie/client:account
+                                             client
+                                             (gethash :account options)))))
+                                     :test #'equal))))
 
 (defun history (options)
   (declare (type hash-table options))
@@ -64,13 +84,13 @@
 
 (defun main (argv &key (strm t))
   (declare (type list argv))
-  (uiop:quit
     (cl-i:execute-program
       "pixie"
       (cl-i:system-environment-variables)
       `(
         (() . ,#'help)
         (("whoami") . ,#'whoami)
+        (("account" "list") . ,#'account-list)
         (("history") . ,#'history)
         (("post") . ,#'post)
         (("watch") . ,#'watch)
@@ -85,4 +105,12 @@
                   (format strm "~A~%"
                           (cl-i:generate-string result :pretty 4)
                           )
-                  result))))
+                  result)))
+
+;(skin.djha.pixie:main '("whoami" "--set-account" "djhaskin987"))
+;(skin.djha.pixie:main '("account" "list"))
+
+(defun entrypoint (argv)
+  (uiop:quit
+    (main argv :strm *standard-output*)))
+

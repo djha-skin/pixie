@@ -16,13 +16,13 @@
   :components ((:module "src"
                         :components
                         (
-                         (:file "main")
                          (:file "client")
                          (:module "clients"
                                   :components
                                   (
-                                   (:file "fs")
+                                   (:file "groupme")
                                    ))
+                         (:file "main")
                          )))
   :description "Small, mischeivous chat client"
   :build-operation "program-op"

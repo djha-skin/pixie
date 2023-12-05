@@ -7,7 +7,7 @@
 
 (in-package #:cl-user)
 (defpackage
-  #:skin.djha.pixie/client/groupme (:use #:cl)
+  #:skin.djha.pixie/clients/groupme (:use #:cl)
   (:documentation
     "
     This is the groupme chat client for Pixie.
@@ -18,7 +18,7 @@
     (:import-from #:quri)
     (:import-from #:nrdl)
     )
-(in-package #:skin.djha.pixie/client/groupme)
+(in-package #:skin.djha.pixie/clients/groupme)
 
 (defclass groupme-client ()
   ((api-token
@@ -52,13 +52,17 @@
     )
   )
 
-(defmethod skin.djha.pixie/client:make-account ((kind :groupme) specifics)
+(defmethod skin.djha.pixie/client:make-account ((kind (eql :groupme)) specifics)
   (declare (type hash-table specifics))
+  (loop for key being the hash-keys of specifics
+        using (hash-value value)
+        do
+        (format t "And: ~A: ~A~%" key value))
   (make-instance 'groupme-client
-                 :api-token (gethash "api-token" specifics)
-                 :scheme (gethash "scheme" specifics "https")
-                 :host (gethash "host" specifics "api.groupme.com")
-                 :base-path (gethash "base-path" specifics "v3")))
+                 :api-token (gethash :api-token specifics)
+                 :scheme (gethash :scheme specifics "https")
+                 :host (gethash :host specifics "api.groupme.com")
+                 :base-path (gethash :base-path specifics "v3")))
 
 (defun simple-get
   (
@@ -67,9 +71,10 @@
    query
    path
    )
+      (format t "API Token: ~A" (api-token client))
   (multiple-value-bind
     (response code headers redir)
-    (let ((q (acons "token" (token client) query)))
+    (let ((q (acons "token" (api-token client) query)))
       (dexador:get
         (quri:make-uri
           :scheme (scheme client)
@@ -80,18 +85,19 @@
           :query q)))
     (declare (ignore headers)
              (ignore redir))
+
     (if (> code 399)
       (error "bad")
-      (gethash
-        "response"
-        (with-input-from-string (strm response)
-          (nrdl:parse-from strm))))))
+        (let ((unwrapped (with-input-from-string (strm response)
+                          (nrdl:parse-from strm))))
+          (format t "Unwrapped ~A~%" (nrdl:nested-to-alist unwrapped))
+          (format t "Response ~A~%" (nrdl:nested-to-alist (gethash "response" unwrapped)))
+          (gethash "response" unwrapped)))))
 
 (defmethod skin.djha.pixie/client:whoami
     ((client groupme-client))
-    (gethash "response"
-             (simple-get client
-                         :path '("users" "me"))))
+  (simple-get client
+              :path '("users" "me")))
 
 ;(defun get-group-messages
 ;  (
@@ -140,6 +146,7 @@
    client
    &key
    query
+   path
    (page 1)
    )
   (declare (type groupme-client client)
@@ -204,43 +211,43 @@
       v))
   result)
 
-(defun ids-names
-  (ids)
-  ; we have to sort first, to ensure determinism.
-  (loop with r = (alexandria:hash-table-alist ids)
-        with r = (sort r #'string< :key #'car)
-        with building = (make-hash-table :test #'equal)
-        for (id . nick) in r
-        do
-        (insert-by-name nick id building)
-        finally
-        (return building)))
-
-
-(defmethod skin.djha.pixie/client:rooms ((client groupme-client))
-  (loop with ids = (make-hash-table :test #'equal)
-        with groups = (groupme-get :path '("groups")
-                                   :query '(("omit" . "memberships")))
-        for g across groups
-        do
-        (adjoin-entity (gethash "name" g) (gethash "id" g) ids)
-        finally
-        (return ids)))
-
-(defmethod skin.djha.pixie/client:contacts ((client groupme-client))
-    ; The past chats method is better
-    (loop with ids = (make-hash-table :test #'equal)
-          for c across (groupme-get :path '("chats"))
-          do
-          (let ((other-user (gethash "other_user" g)))
-            (adjoin-entity (gethash "name" other-user)
-                           (gethash "id" other-user)
-                           ids))
-          finally
-          (return ids)))
-
-(defmethod skin.djha.pixie/client:history ((client groupme-client)
-                                           ent
-                                           &key
-                                           limit since until)
-
+;(defun ids-names
+;  (ids)
+;  ; we have to sort first, to ensure determinism.
+;  (loop with r = (nrdl:nested-to-alist ids)
+;        with r = (sort r #'string< :key #'car)
+;        with building = (make-hash-table :test #'equal)
+;        for (id . nick) in r
+;        do
+;        (insert-by-name nick id building)
+;        finally
+;        (return building)))
+;
+;
+;(defmethod skin.djha.pixie/client:rooms ((client groupme-client))
+;  (loop with ids = (make-hash-table :test #'equal)
+;        with groups = (groupme-get :path '("groups")
+;                                   :query '(("omit" . "memberships")))
+;        for g across groups
+;        do
+;        (adjoin-entity (gethash "name" g) (gethash "id" g) ids)
+;        finally
+;        (return ids)))
+;
+;(defmethod skin.djha.pixie/client:contacts ((client groupme-client))
+;    ; The past chats method is better
+;    (loop with ids = (make-hash-table :test #'equal)
+;          for c across (groupme-get :path '("chats"))
+;          do
+;          (let ((other-user (gethash "other_user" g)))
+;            (adjoin-entity (gethash "name" other-user)
+;                           (gethash "id" other-user)
+;                           ids))
+;          finally
+;          (return ids)))
+;
+;(defmethod skin.djha.pixie/client:history ((client groupme-client)
+;                                           ent
+;                                           &key
+;                                           limit since until)
+;
