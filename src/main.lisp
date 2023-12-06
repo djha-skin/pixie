@@ -94,7 +94,7 @@
         (("history") . ,#'history)
         (("post") . ,#'post)
         (("watch") . ,#'watch)
-        (("list-conversations") . ,#'list-conversations)
+        (("conversations") . ,#'list-conversations)
         (("help") . ,#'help)
         )
       :cli-arguments argv

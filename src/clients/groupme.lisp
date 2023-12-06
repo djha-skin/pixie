@@ -54,10 +54,6 @@
 
 (defmethod skin.djha.pixie/client:make-account ((kind (eql :groupme)) specifics)
   (declare (type hash-table specifics))
-  (loop for key being the hash-keys of specifics
-        using (hash-value value)
-        do
-        (format t "And: ~A: ~A~%" key value))
   (make-instance 'groupme-client
                  :api-token (gethash :api-token specifics)
                  :scheme (gethash :scheme specifics "https")
