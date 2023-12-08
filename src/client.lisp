@@ -10,11 +10,12 @@
     ")
     ;(import-from #:pixie/clients/fs)
   (:export
+    make-client-system
     make-client
     account-names
     account
-    make-account
     whoami
+    room-names
     ;conversations
     ;connect
     ;name
@@ -30,7 +31,7 @@
 
 (in-package #:skin.djha.pixie/client)
 
-(defgeneric make-account (kind specifics)
+(defgeneric make-client (kind specifics)
             (
              :documentation
              "
@@ -48,13 +49,22 @@
              )
             )
 
-(defclass root ()
+(defgeneric room-names (account)
+            (
+             :documentation
+             "
+             Return a list of room names.
+             "
+             )
+            )
+
+(defclass client-system ()
   ((accounts :initarg :accounts
              :initform (error "Must specify accounts.")
              :accessor accounts
              :type hash-table)))
 
-(defun make-client (config)
+(defun make-client-system (config)
   (let ((account-objects (make-hash-table :test #'equal)))
     (loop for slug being the hash-keys of (gethash :accounts config)
           using (hash-value payload)
@@ -65,10 +75,10 @@
                     using (hash-value specifics)
                     do
                     (setf (gethash slug account-objects)
-                          (skin.djha.pixie/client:make-account
+                          (skin.djha.pixie/client:make-client
                             kind
                             specifics)))))
-  (make-instance 'root :accounts account-objects)))
+  (make-instance 'client-system :accounts account-objects)))
 
 (defun account-names (client)
   (loop for acc being the hash-keys of (accounts client)

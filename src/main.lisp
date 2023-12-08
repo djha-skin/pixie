@@ -35,32 +35,38 @@
                               (:options . ,options))
                             :test #'equal)))))
 
-;; TODO: Account-list
 (defun account-list (options)
   (declare (type hash-table options))
   (alexandria:alist-hash-table `((:status . :successful)
                                  (:accounts .
                                   ,(skin.djha.pixie/client:account-names
-                                     (skin.djha.pixie/client:make-client
+                                     (skin.djha.pixie/client:make-client-system
                                        options))))
                                :test #'equal))
 
+(defun client-operation (options opspec op)
+  (declare (type hash-table options)
+           (type function op))
+  (if (null (gethash :account options))
+      (alexandria:alist-hash-table
+        `((:status . :cl-usage-error)
+          (:options . ,options)
+          (:error . "No account specified"))
+        :test #'equal)
+      (let ((client (skin.djha.pixie/client:make-client-system options)))
+        (alexandria:alist-hash-table
+          `((:status . :successful)
+            (opspec .
+             ,(funcall
+                op
+                (skin.djha.pixie/client:account
+                  client
+                  (gethash :account options)))))
+          :test #'equal))))
+
 (defun whoami (options)
   (declare (type hash-table options))
-  (if (null (gethash :account options))
-      (alexandria:alist-hash-table `((:status . :cl-usage-error)
-                                     (:options . ,options)
-                                     (:error . "No account specified"))
-                                   :test #'equal)
-      (let ((client (skin.djha.pixie/client:make-client options)))
-        (format t "~A" (skin.djha.pixie/client:account-names client))
-        (alexandria:alist-hash-table `((:status . :successful)
-                                       (:whoami .
-                                        ,(skin.djha.pixie/client:whoami
-                                           (skin.djha.pixie/client:account
-                                             client
-                                             (gethash :account options)))))
-                                     :test #'equal))))
+    (client-operation options :whoami #'skin.djha.pixie/client:whoami))
 
 (defun history (options)
   (declare (type hash-table options))
@@ -74,15 +80,18 @@
   (declare (type hash-table options))
   (stub options "watch"))
 
-(defun list-conversations (options)
+(defun room-list (options)
   (declare (type hash-table options))
-  (stub options "list-conversations"))
+  (client-operation options :rooms #'skin.djha.pixie/client:room-names))
 
 (defun help (options)
   (declare (type hash-table options))
   (stub options "help"))
 
 (defun main (argv &key (strm t))
+  "
+  The functional entrypoint of the pixie command.
+  "
   (declare (type list argv))
     (cl-i:execute-program
       "pixie"
@@ -94,7 +103,7 @@
         (("history") . ,#'history)
         (("post") . ,#'post)
         (("watch") . ,#'watch)
-        (("conversations") . ,#'list-conversations)
+        (("room" "list") . ,#'room-list)
         (("help") . ,#'help)
         )
       :cli-arguments argv
@@ -109,7 +118,8 @@
 
 ;(skin.djha.pixie:main '("whoami" "--set-account" "djhaskin987"))
 ;(skin.djha.pixie:main '("account" "list"))
-
+;; TODO: Aggregate response, deal with symbols.
+;(skin.djha.pixie:main '("room" "list" "--set-account" "djhaskin987"))
 (defun entrypoint (argv)
   (uiop:quit
     (main argv :strm *standard-output*)))
