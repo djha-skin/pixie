@@ -1,9 +1,10 @@
-# build files
+# build and test files
 /.qlot/
 /.bundle-libs/
 /dist/
 /build/
 /.pixie.nrdl
+/*.log
 
 # executables
 *.abcl
@@ -13,6 +14,7 @@
 *.lx32fsl
 *.lx64fsl
 *.x86f
+
 
 # Editor files
 *~

@@ -88,17 +88,20 @@
           (gethash "response" unwrapped)))))
 
 (defun adjoin-entity
-  (nick id ids)
+    (nick id ids)
   "
   This function collapses all known nicknames for a given set of ids,
   choosing the longest nickname for each entity id.
   This helps to build a mapping between ids and nicknames.
   "
-  (let ((prior (assoc id ids)))
+  (declare (type string nick)
+           (type string id)
+           (type hash-table ids))
+  (let ((prior (gethash id ids)))
     (when (or (not prior)
-            (< (length (cdr prior))
-               (length nick)))
-      (acons id nick ids))))
+              (< (length prior)
+                 (length nick)))
+      (setf (gethash id ids) nick))))
 
 (defun insert-by-name (nick id mapping)
   "
@@ -128,22 +131,23 @@
   "
   Return a hash table mapping nicknames to ids given the API response.
   "
-  (let ((collapsed-nicks
+  (let* ((collapsed-nicks
           (loop for record in response
                 for nick = (gethash "name" record)
                 for id = (gethash "id" record)
-                with accumulate = nil
+                with accumulate = (make-hash-table :test #'equal)
                 do
                 (adjoin-entity nick id accumulate)
                 finally
-                (return 
-                  (alexandira:alist-hash-table
-                    (sort accumulate (lambda (a b)
-                                       ; Sort based on lexicographic sort
-                                       ; of nicknames.
-                                       (string< (cdr a) (cdr b)))))))))
-    (loop for id being the hash-keys of collapsed-nicks
-          using (hash-value nick)
+                (return accumulate)))
+        (sorted-nicks
+          (sort
+            (loop for id being the hash-keys of collapsed-nicks
+                 using (hash-value nick)
+                 collect (cons id nick))
+            #'string<
+            :key #'car)))
+    (loop for (id . nick) in sorted-nicks
           with accumulate = (make-hash-table :test #'equal)
           do
           (insert-by-name
@@ -160,9 +164,12 @@
 
 (defmethod skin.djha.pixie/client:room-names
     ((client groupme-client))
-  (names-ids (groupme-get '("groups")
+  (names-ids 
+    (groupme-get client
+                          '("groups")
                           :query '(("omit" . "memberships")))))
-    
+
+
 ;(defun get-group-messages
 ;  (
 ;   client
@@ -173,9 +180,8 @@
 ;   until
 ;   )
 ;  (declare (type groupme-client client)
-;           (type list query)
-;           (type integer page))
-;  (loop with messages = (make-array 10 :fill-pointer t)
+;           (type list query))
+;  (loop with messages = (make-array '(0) :element-type 'hash-table :adjustable t :fill-pointer 0)
 ;        with query = `(("token" . ,(api-token client)))
 ;        with response = (simple-get client 
 ;                                    :path
@@ -208,12 +214,14 @@
 
 (defun groupme-get
   (client path &key query)
-  (loop with accumulate = (make-array 10 :fill-pointer t)
+  (loop with accumulate = (make-array '(0)
+                                      :element-type 'hash-table 
+                                      :adjustable t :fill-pointer 0)
         for page = 1 then (+ page 1)
-        for response = (simple-get client path (acons "page" page query))
+        for response = (simple-get client path :query (acons "page" page query))
         while (> (length response) 0)
         do
-        (loop for msg across response
+        (loop for msg in response
               do
               (vector-push-extend msg accumulate))
         finally
